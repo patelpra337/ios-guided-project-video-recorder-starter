@@ -8,6 +8,7 @@
 
 import UIKit
 import AVFoundation
+import AVKit
 
 class CameraViewController: UIViewController {
     
@@ -44,13 +45,28 @@ class CameraViewController: UIViewController {
             playerView.frame = topRect
             view.addSubview(playerView)
             
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(playRecording(_:)))
+            playerView.addGestureRecongnizer(tapGesture)
+            
         }
-        
         player.play()
+    }
+    
+    @IBAction func playRecording(_ sender: UITapGestureRecognizer) {
+        guard sender.state == .ended else { return }
+//
+//        player.seek(to: CMTime(seconds: 0, preferredTimescale: 600)) // seconds = N/D, D = 600
+//        player.play()
+        
+        let playerVC = AVPlayerViewController()
+        playerVC.player = player
+        
+        self.present(playerVC, animated: true, completion: nil)
     }
     
     private func setupCamera() {
         let camera = bestCamera()
+        let microphone = bestMicrophone()
         
         captureSession.beginConfiguration()
         
@@ -74,10 +90,11 @@ class CameraViewController: UIViewController {
         
         guard captureSession.canAddOutput(fileOutput) else {
             preconditionFailure("This session can't handle this type of output: \(fileOutput)")
-            
         }
         
         captureSession.addOutput(fileOutput)
+        
+        
     }
     
     
@@ -93,6 +110,14 @@ class CameraViewController: UIViewController {
         
         preconditionFailure("No cameras on device match the specs that we need.")
         
+    }
+    
+    private func bestMicrophone() -> AVCaptureDevice {
+        if let device = AVCaptureDevice.default(for: .audio) {
+            return device
+        }
+        
+        preconditionFailure("No microphone on device match the specs that we need." )
     }
     
     override func viewDidAppear(_ animated: Bool) {
