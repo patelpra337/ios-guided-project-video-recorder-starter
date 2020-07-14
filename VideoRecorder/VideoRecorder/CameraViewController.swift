@@ -12,21 +12,45 @@ import AVFoundation
 class CameraViewController: UIViewController {
     
     lazy private var captureSession = AVCaptureSession()
-
+    lazy private var fileOutput = AVCaptureMovieFileOutput()
+    
+    lazy private var player = AVPlayer()
+    private var playerView: VideoPlayerView!
+    
     @IBOutlet var recordButton: UIButton!
     @IBOutlet var cameraView: CameraPreviewView!
-
-
-	override func viewDidLoad() {
-		super.viewDidLoad()
-
-		// Resize camera preview to fill the entire screen
-		cameraView.videoPlayerView.videoGravity = .resizeAspectFill
+    
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Resize camera preview to fill the entire screen
+        cameraView.videoPlayerView.videoGravity = .resizeAspectFill
         setupCamera()
-	}
+    }
+    
+    func playMovie(url: URL) {
+        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+        
+        if playerView == nil {
+            playerView = VideoPlayerView()
+            playerView.player = player
+            
+            var topRect = view.bounds
+            topRect.size.width /= 4
+            topRect.size.height /= 4
+            topRect.origin.y = view.layoutMargins.top
+            
+            playerView.frame = topRect
+            view.addSubview(playerView)
+            
+        }
+        
+        player.play()
+    }
     
     private func setupCamera() {
-       let camera = bestCamera()
+        let camera = bestCamera()
         
         captureSession.beginConfiguration()
         
@@ -47,7 +71,16 @@ class CameraViewController: UIViewController {
         captureSession.commitConfiguration()
         
         cameraView.session = captureSession
+        
+        guard captureSession.canAddOutput(fileOutput) else {
+            preconditionFailure("This session can't handle this type of output: \(fileOutput)")
+            
+        }
+        
+        captureSession.addOutput(fileOutput)
     }
+    
+    
     
     private func bestCamera() -> AVCaptureDevice {
         if let device = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .back) {
@@ -73,22 +106,44 @@ class CameraViewController: UIViewController {
         
         captureSession.stopRunning()
     }
-
-
+    
+    
     @IBAction func recordButtonPressed(_ sender: Any) {
+        if fileOutput.isRecording {
+            fileOutput.stopRecording()
+        } else {
+            fileOutput.startRecording(to: newRecordingURL(), recordingDelegate: self)
+        }
+    }
+    
+    /// Creates a new file URL in the documents directory
+    private func newRecordingURL() -> URL {
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        
+        let name = formatter.string(from: Date())
+        let fileURL = documentsDirectory.appendingPathComponent(name).appendingPathExtension("mov")
+        return fileURL
+    }
+    
+    func updateViews() {
+        recordButton.isSelected = fileOutput.isRecording
+    }
+}
 
-	}
-	
-	/// Creates a new file URL in the documents directory
-	private func newRecordingURL() -> URL {
-		let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-
-		let formatter = ISO8601DateFormatter()
-		formatter.formatOptions = [.withInternetDateTime]
-
-		let name = formatter.string(from: Date())
-		let fileURL = documentsDirectory.appendingPathComponent(name).appendingPathExtension("mov")
-		return fileURL
-	}
+extension CameraViewController: AVCaptureFileOutputRecordingDelegate {
+    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
+        updateViews()
+    }
+    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        if let error = error {
+            print("Error saving video: \(error)")
+        }
+        print("Video URL: \(outputFileURL)")
+        playMovie(url: outputFileURL)
+        updateViews()
+    }
 }
 
