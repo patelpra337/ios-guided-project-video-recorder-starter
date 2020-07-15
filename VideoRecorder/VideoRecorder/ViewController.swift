@@ -10,31 +10,28 @@ import UIKit
 import AVFoundation
 
 class ViewController: UIViewController {
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Do any additional setup after loading the view.
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        // TODO: get permission
-        
-        requestVideoPermisson()
-        
-    }
+	
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		// Do any additional setup after loading the view.
+	}
+	
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+		
+		requestPermissionAndShowCamera()
+	}
     
     private func requestPermissionAndShowCamera() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .notDetermined:
-            requestVideoPermisson()
+            requestVideoPermission()
             
         case .restricted:
             preconditionFailure("Video is disables, please review device restrictions.")
             
         case .denied:
-            preconditionFailure("Tell the user tye can't case the app without giving permissions via settings > Privacy > Video")
+            preconditionFailure("Tell the user they can't use the app without giving permissions via SAettings > Privacy > Video")
             
         case .authorized:
             showCamera()
@@ -44,10 +41,10 @@ class ViewController: UIViewController {
         }
     }
     
-    private func requestVideoPermisson() {
+    private func requestVideoPermission() {
         AVCaptureDevice.requestAccess(for: .video) { isGranted in
             guard isGranted else {
-                preconditionFailure("UI Tell the user to enable permissions for Video/Camers")
+                preconditionFailure("UI: Tell the user to enable permissions for Video/Camera")
             }
             
             DispatchQueue.main.async {
@@ -55,8 +52,8 @@ class ViewController: UIViewController {
             }
         }
     }
-    
-    private func showCamera() {
-        performSegue(withIdentifier: "ShowCamera", sender: self)
-    }
+	
+	private func showCamera() {
+		performSegue(withIdentifier: "ShowCamera", sender: self)
+	}
 }

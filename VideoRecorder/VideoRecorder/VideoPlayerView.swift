@@ -12,7 +12,7 @@ import AVFoundation
 /// Use this class to make a full screen or partial screen view to display
 /// video from an AVPlayer
 
-class videoPreviewLayer: UIView {
+class VideoPlayerView: UIView {
     
     override class var layerClass: AnyClass {
         return AVPlayerLayer.self
